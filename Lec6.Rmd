@@ -1,0 +1,54 @@
+---
+title: "PCA"
+author: "tntrg_03"
+date: "2023-10-05"
+output: word_document
+---
+
+```{r setup,include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(FactoMineR)
+library(factoextra)
+library(stats)
+```
+
+##Lecture 6   
+
+```{r}
+##Principal Components Analysis(Phân tích thành phần chính~Giảm chiều của dữ liệu)
+library(readxl)
+PCA <- read_excel("E:/Phan tich tk nhieu chieu/Data-example-for-PCA.xls")
+#PCA
+attach(PCA)
+```
+```{r}
+cov1=cov(PCA)
+cov1
+cov = matrix(cov1,nrow =8,ncol = 8)
+```
+```{r}
+eigen(cov1) #Tìm các giá trị riêng,vecto riêng
+8*mean(eigen(cov1)$values)
+x<-diag(cov1)
+sum(x)
+#Tổng các giá trị riêng bằng tổng giá trị var
+```
+
+###
+```{r}
+PCA1 = prcomp(PCA)
+#prcomp(PCA,scale = TRUE) #:Chuẩn hoá dữ liệu
+summary(PCA1)
+(PCA1$sdev)^2
+loadings(PCA1)
+```
+```{r}
+PCA2 = princomp(PCA,)
+summary(PCA2)
+(PCA2$loadings)
+```
+
+

@@ -1,0 +1,177 @@
+---
+title: "ANOVA"
+author: "tntrg_03"
+date: "2023-09-07"
+output: word_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+
+#Các giả thiết của ANOVA:-Biến phụ thuộc phân phối chuẩn 
+# -Độc lập và ngẫu nhiên 
+# -Phương sai của các nhóm tương đồng 
+#H0:mul1=mul2=mul3 
+#GT bị bác bỏ khi Tổng(x_ij-tb(x))\^2 nhỏ và tổng (tb(x_ij)-tb(x))\^2 lớn
+
+```{r}
+library(readxl)
+library(car)
+library(carData)
+
+```
+
+##1 sample t-test Generate random numbers with normal dist,mean =
+168,sd= 6
+
+```{r}
+height=rnorm(50,mean = 168,sd = 6)
+hist(height,15)#histogram
+```
+
+Test the hypothesis that population mean is 168 H0:mul = 168 T_qs=
+(tb(x)=168)/sd/sqrt(n))
+
+```{r}
+tstat = (mean(height)-168)/sd(height)/sqrt(length(height))
+tstat
+
+```
+
+```         
+    norm(cho phân phối Chuẩn)    t(cho phân phối T)
+```
+
+r:rnorm()tạo ra một dãy giá trị ngẫu nhiên có tb=,sd= 
+qnorm():tính giá trị tới hạn
+pnorm():từ giá trị tính xác suất, thường để tính p-value
+
+```{r}
+tcrit = qt(0.025,49,lower.tail = FALSE)
+tcrit
+ifelse(abs(tstat) > tcrit,print("Bac bo H0"),print("Khong bac bo"))
+  
+```
+
+```{r}
+pvalue= 2*pt(tstat,49,lower.tail =FALSE)
+pvalue
+```
+
+```{r}
+t.test(height,mu = 168)
+```
+
+```{r}
+ GrandStand <- read_excel("E:/Phan tich tk nhieu chieu/DATA/DATA/SBE13e_DATAfiles_CH13/GrandStand.xlsx")
+GrandStand
+attach(GrandStand)
+```
+
+One way ANOVA
+
+```{r}
+m1= mean(Italian)
+m2= mean(Seafood)
+m3= mean(Steakhouse)
+mt= sum(GrandStand)/(length(Italian)+length(Italian)+length(Steakhouse))
+mt
+Tss=(sum((GrandStand-mt)^2))
+Tss
+Gss= sum(8*((m1-mt)^2+(m2-mt)^2+(m3-mt)^2))
+Gss
+Wss = Tss-Gss
+Wss
+```
+
+#F_qs
+
+```{r}
+F = (Gss/(2))/(Wss/(24-3))
+F
+F_crit = qf(0.05,2,21,lower.tail = FALSE)
+
+pf(F,2,21,lower.tail = FALSE)
+```
+
+#use command AOV
+
+```{r}
+price= c(Italian,Seafood,Steakhouse)
+rest = c(rep("A",8),rep("B",8),rep("C",8))
+result = aov(price~rest)
+summary(result)
+```
+
+**2 test hiệu quả nhất điều chỉnh mức sai lầm loại 1: Bonferroni,Tukey**
+
+```{r}
+pairwise.t.test(price,rest,p.adjust.method = "bonf")
+by(price,rest,mean) #or by(price,rest,sd)
+
+```
+
+```{r}
+library(stats)
+TukeyHSD(result,"rest",ordered = FALSE)
+#____________________________________________
+TukeyHSD(result,"rest",ordered = FALSE, conf.level = 0.9)
+```
+
+Cho biết khoảng tin cậy cận trên và dưới giữa chênh lệch giữa trung bình
+2 biến
+
+*TWO WAY ANOVA with interaction
+Use data "SalesSalary"
+```{r}
+SalesSalary <- read_excel("E:/Phan tich tk nhieu chieu/DATA/DATA/SBE13e_DATAfiles_CH13/SalesSalary.xlsx")
+#View(SalesSalary)
+attach(SalesSalary)
+table(SalesSalary[,3:4])
+summary(Salary)
+```
+```{r}
+by(Salary,Position,mean)
+by(Salary,Experience,mean)
+```
+
+```{r}
+result2 = aov(Salary~Position+Experience+Position*Experience)
+summary(result2)
+```
+```{r}
+df <- data.frame(patient=rep(1:5, each=4),
+                 drug=rep(c("A","B","C","D"), times=5),
+                 response=c(30, 28, 16, 34,
+                            14, 18, 10, 22,
+                            24, 20, 18, 30,
+                            38, 34, 20, 44,
+                            26, 28, 14, 30))
+
+df
+#fit repeated measures ANOVA model
+model <- aov(response~factor(drug)+Error(factor(patient)), data = df)
+
+#view model summary
+summary(model)
+
+summary<-df %>%
+  group_by(drug) %>%
+  get_summary_stats(response, type = "mean_sd")
+data.frame(summary)
+
+install.packages("dplyr")
+library(dplyr)
+install.packages("rstatix")
+library(rstatix)
+```
+
+
+
+

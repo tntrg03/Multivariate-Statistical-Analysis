@@ -1,0 +1,40 @@
+---
+title: "PCA"
+author: "tntrg_03"
+date: "2023-10-12"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+setwd("E:/Phan tich tk nhieu chieu/DATA")
+Bank=read.csv("BankData.csv")
+
+attach(Bank)
+bank1=Bank[,1:8]
+bank2=scale(bank1)
+
+PCA3=princomp(bank2,cor=TRUE,score=TRUE)
+summary(PCA3)
+
+```
+```{r}
+cov1=cov(bank2)
+eigen(cov1)
+(PCA3$sdev)^2
+PCA=prcomp(bank2)
+summary(PCA)
+PCA$x
+```
+```{r}
+PCA3$loadings[,1:3]
+## loadings là correlation của comp(PC tạo ra) với các biến 
+#sum((PC3$loadings^2)
+# bình phương loadings là trọng số( phần đóng góp) của biến ban đầu vào PCPC
+PCA3$scores
+## scores: MỨC độ quan hệ btw PC & Biến
+
+```
+

@@ -1,0 +1,415 @@
+---
+title: "Phân Tích Thống Kê Nhiều Chiều"
+author: "11217004_Trương Ngọc Thuỳ Trang"
+date: "2023-11-26"
+output:
+  html_document: default
+  word_document: default
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Bài tập 1: ANOVA
+
+Tệp số liệu được sử dụng: "HybridTest.xls" Mục tiêu của nghiên cứu là để
+so sánh các loại xe ô tô điện và xe xăng truyền thống.
+
+Consumer Số liệu sau đây là số đo về lượng tiêu hao năng lượng đo bằng
+dặm/gallon (MPG) cho hai mẫu xe điện cỡ nhỏ, hai mẫu xe điện cỡ trung,
+hai mẫu xe điện SUV cỡ nhỏ và hai mẫu xe điện SUV cỡ trung. Tương tự là
+MPG cho tám mẫu xe xăng thông thường.
+
+1\. Thực hiện một số thống kê mô tả và nhận xét.
+
+2\. Với mức ý nghĩa $\alpha = 0.05$, hãy kiểm định các tác động do loại
+xe, cỡ xe và tương tác giữa loại xe và cỡ xe.
+
+3\. Thực hiện các kiểm định so sánh cặp (multiple comparison).
+
+```{r}
+library(readxl)
+HybridTest <- read_excel("Assignment_TKT63/HybridTest.xlsx")
+HybridTest
+```
+
+## 1.1. Thực hiện một số thống kê mô tả và nhận xét
+
+```{r}
+#summary(HybridTest)
+class<-as.factor(HybridTest$Class)
+type<- as.factor(HybridTest$Type)
+MPG<-HybridTest$MPG
+summary(class)
+summary(type)
+summary(MPG)
+```
+
+```{r}
+print("Trung bình MPG của mẫu xe cỡ nhỏ")
+mean(MPG[1:4])
+print("Trung bình MPG của mẫu xe cỡ vừa")
+mean(MPG[5:8])
+print("Trung bình MPG của mẫu xe cỡ nhỏ SUV")
+mean(MPG[9:12])
+print("Trung bình MPG của mẫu xe cỡ vừa SUV")
+mean(MPG[13:16])
+```
+
+### Các giả thiết ANOVA:
+
+-Mẫu là ngẫu nhiên và độc lập
+
+-Biến phụ thuộc phân phối chuẩn
+
+-Phương sai biến phụ thuộc trong mỗi nhóm là tương đồng
+
+### Kiểm định các giả thiết ANOVA
+
+a.Mẫu là ngẫu nhiên và độc lập
+
+b.Biến phụ thuộc phân phối chuẩn
+
+```{r}
+library(nortest)
+## Kiểm định thông qua sai số
+AV=rstandard(aov(MPG~class*type))
+shapiro.test(AV)
+# qqplot of residuals
+qqnorm(AV)
+qqline(AV)
+# Histogram of residuals
+hist(AV)
+
+```
+
+c\. Phương sai biến phụ thuộc trong mỗi nhóm là tương đồng
+
+```{r}
+library(car)
+leveneTest(MPG~class*type,data=HybridTest)
+```
+
+=\> Phương sai trong mỗi nhóm không tương đồng. Nhưng ANOVA vẫn có thể
+dùng khi kích cỡ mẫu của các nhóm là bằng nhau.
+
+## 1.2. Với mức ý nghĩa $\alpha = 0.05$, hãy kiểm định các tác động do loại xe, cỡ xe và tương tác giữa loại xe và cỡ xe.
+
+```{r}
+anova_MPG<-aov(MPG~class+type+class*type,data = HybridTest)
+summary(anova_MPG)
+```
+
+=\>Nhân tố cỡ xe và loại xe có tác động đến trung bình =\> Ít nhất một
+trung bình của 1 nhóm có sự khác biệt =\>Kiểm tra bằng Tukey Test
+
+=\>Nhưng tương tác giữa cỡ xe và loại xe thì lại không tác động đến
+trung bình
+
+## 1.3. Thực hiện các kiểm định so sánh cặp (multiple comparison).
+
+Dùng kiểm định Tukey
+
+$H_0$:Trung bình của 2 nhóm tương đồng
+
+$H_1$:Trung bình của 2 nhóm có sự khác biệt
+
+Ở trường hợp này chỉ cần kiểm định so sánh cặp cho nhân tố cỡ xe vì nhân
+tố loại xe chỉ có 2 nhóm.
+
+```{r}
+library(stats)
+TukeyHSD(anova_MPG,c("class"),ordered = FALSE)
+plot(TukeyHSD(anova_MPG,c("class"),ordered = FALSE))
+```
+
+# Bài tập 2: PCA và phân tích nhân tố
+
+Dữ liệu được sử dụng: "car_sale". -Tệp dữ liệu này chứa các biến về
+doanh số(sales), giá niêm yết(price) và thông số kỹ thuật cho các kiểu
+dáng và mẫu xe khác nhau. (nhãn của các biến trong bảng "nhãn"). Một nhà
+phân tích muốn dự đoán doanh số bán ô tô từ một tập hợp các yếu tố đã
+cho. Tuy nhiên, nhiều yếu tố có mối tương quan với nhau và nhà phân tích
+lo ngại rằng điều này có thể ảnh hưởng xấu đến kết quả phân tích. Yêu
+cầu: Sử dụng Phân tích nhân tố với PCA để phân tích các yếu tố ảnh hưởng
+đến giá bán.
+
+```{r}
+library(readxl)
+car_sales <- read_excel("Assignment_TKT63/car_sales.xlsx")
+car_sales<-data.frame(car_sales)
+```
+
+Nhận thấy dữ liệu đầu vào bị khuyết giá trị, cột thứ 14 là giá trị
+ln(sales),từ cột 15 đến cột 25 là các giá trị chuẩn hoá của cột 3 đến
+cột 13 =\>Cách xử lý???
+
+## 2.1.Xử lý dữ liệu
+
+```{r}
+## Visualization missing values
+library(visdat)
+vis_dat(car_sales)
+vis_miss(car_sales)
+```
+
+-Cách 1:Bỏ tất cả các dòng bị thiếu giá trị
+
+```{r}
+car_sales1<-na.omit(car_sales)
+head(car_sales1)
+```
+
+-Cách 2: Thay những giá trị N/A bằng trung bình của biến đó
+
+```{r}
+car_salesM<-car_sales[,1:13]
+car_sales2=data.frame()
+for(i in 2:ncol(car_salesM)) {
+  mv<-is.na(car_salesM[,i])
+  car_salesM[mv,i]=mean(car_sales[,i],na.rm = TRUE)
+}
+head(car_salesM)
+```
+
+-Cách 3:Hồi quy (regression impution)
+
+-Cách 4:Stochatic regression imputation (Hồi quy có tính đến yếu tố ngẫu
+nhiên)
+
+-Cách 5: K-Nearest Neighbors:Algorithm
+
+Để đơn giản hoá việc tính toán và phân tích và mẫu cũng đủ lớn nên trong
+trường hợp này sẽ lấy tập dữ liệu sau khi đã bỏ các dòng có quan sát bị
+thiếu.
+
+## 2.2.Phân tích thành phần chính (PCA)
+
+Vì nhà phân tích muốn dự đoán doanh số bán ô tô từ một tập hợp các yếu
+tố đã cho. Tuy nhiên, nhiều yếu tố có mối tương quan với nhau và nhà
+phân tích lo ngại rằng điều này có thể ảnh hưởng xấu đến kết quả phân
+tích. Do đó sẽ sử dụng phân tích thành phần chính PCA để chọn ra các
+thành phần đại diện quan trọng nhất ảnh hưởng đến giá bán.
+
+```{r}
+library(FactoMineR)
+library(factoextra)
+sales_PCA<-na.omit(car_sales1[,15:25])
+head(sales_PCA)
+```
+
+```{r}
+cov1=cov(sales_PCA)
+#head(cov1)
+cov = matrix(cov1,nrow =11,ncol =11)
+head(cov)
+```
+
+```{r}
+eigen(cov1) #Tìm các giá trị riêng,vecto riêng
+11*mean(eigen(cov1)$values)
+x<-diag(cov1)
+sum(x)
+#Tổng các giá trị riêng bằng tổng giá trị var
+```
+
+```{r}
+pca<-PCA(sales_PCA,graph=FALSE)
+#print(pca)
+get_eigenvalue(pca)
+```
+
+```{r}
+## Trực quan tỉ lệ các thành phần chính
+fviz_eig(pca,addlabels = TRUE,ylim=c(0,100))
+```
+
+```{r}
+PCA_s=prcomp(sales_PCA)
+summary(PCA_s)
+PCA_sales=princomp(sales_PCA,cor=TRUE,score=TRUE)
+summary(PCA_sales)
+#(PCA_s$sdev)^2
+(PCA_sales$sdev)^2
+```
+
+Có 3 giá trị eigen\>1. Giữ lại PC1,PC2,PC3 chúng chiếm 88.01% tổng
+phương sai
+
+```{r}
+PCA_s
+plot(PCA_s,ylim=c(0,11))
+biplot(PCA_s)
+```
+
+```{r}
+
+PC<-PCA_s$x
+# Giữ lại 3 nhân tố PC1,PC2,PC3
+sales_PCA1<-cbind(sales_PCA,PC[,1:3])
+zsale<-scale(na.omit(car_sales1$sales))
+sales_PCA1<-cbind(zsale,sales_PCA1)
+head(sales_PCA1)
+```
+
+## 2.3.Đánh giá tác động của các thành phần chính lên doanh số
+
+```{r}
+library(lmtest)
+library(stargazer)
+reg = lm(zsale~PC1+PC2+PC3,data=sales_PCA1)
+stargazer(reg,type = "text")
+```
+
+# Bài tập 3: Phân tích cụm (Cluster Analysis)
+
+Các nhà sản xuất ô tô cần có khả năng đánh giá thị trường hiện tại để
+xác định khả năng cạnh tranh cho xe của họ. Nếu ô tô có thể được nhóm
+theo dữ liệu có sẵn thì việc này sẽ có thể được thực hiện tự động bằng
+cách sử dụng phân tích cụm.
+
+Thông tin về các kiểu dáng và nhãn hiệu xe khác nhau có trong tập dự
+liệu "car_sale" (giống như dữ liệu cho Bài tập 2). Sử dụng quy trình
+Phân tích cụm phân cấp (hierarchical) để nhóm các loại ô tô bán chạy
+nhất theo giá cả và đặc tính kĩ thuật của chúng.
+
+```{r}
+library(readxl)
+car_sales <- read_excel("Assignment_TKT63/car_sales.xlsx",)
+# Tạo một bảng dữ liệu mới chỉ lấy từ cột 1 đến cột 13 vì những cột còn lại là giá trị chuẩn hoá
+car_sales<-data.frame(car_sales[,1:13])
+library(factoextra)
+library(cluster)
+## Loại dòng mà bị mất giá trị
+data<-na.omit(car_sales)
+
+## Chuẩn hoá dữ liệu
+data[,-1]<-scale(data[,-1])
+head(data)
+
+```
+
+## 3.1.Phương pháp phân cụm khoảng cách liên kết (linkage method) phù hợp
+
+```{r}
+m<-c("average","single","complete","ward")
+names(m)<-c("average","single","complete","ward")
+ac<-function(x){
+  agnes(data,method = x)$ac
+}
+sapply(m,ac)
+```
+
+```{r}
+clust<-agnes(data,method="ward")
+## produce dendrogram
+pltree(clust,cex=0.6,hang=-1,main = "Dendrogram")
+```
+
+## 3.2.Xác định số cụm
+
+```{r}
+# Dùng gap statistic để xác định số nhóm
+gap_stats<-clusGap(data[,-1],FUN = hcut,nstart=25,K.max = 10,B=50)
+fviz_gap_stat(gap_stats)
+```
+
+## 3.3.Tiến hành phân cụm và đánh giá
+
+```{r}
+#compute distance matrix (Tính toán ma trận khoảng cách)
+d <- dist(data[,-1], method = "euclidean")
+
+#perform hierarchical clustering using Ward's method
+final_clust <- hclust(d, method = "ward.D2" )
+
+#cut the dendrogram into 6 clusters
+groups <- cutree(final_clust, k=6)
+table(groups)
+
+```
+
+```{r}
+final_data<-cbind(na.omit(car_sales[,1:13]),cluster=groups)
+head(final_data)
+```
+
+```{r}
+aggregate(final_data[,-1],by=list(cluster=final_data$cluster),mean)
+```
+
+# Bài tập 4: Phân tích khác biệt
+
+## 4.1.Tìm hiểu tình huống
+
+-Một hãng hàng không thu thập dữ liệu về nhân viên của họ đang làm 3
+loại công việc:
+
+1)  nhân viên dịch vụ khách hàng
+
+2)  công nhân kĩ thuật
+
+3)  nhân viên điều phối
+
+-Giám đốc Nhân sự của hãng muốn biết liệu ba cách phân loại công việc
+này có phù hợp với các loại tính cách khác nhau của nhân viên hay không?
+
+-Mỗi nhân viên được thực hiện một loạt bài kiểm tra tâm lý để đánh giá,
+đo lường về 3 loại tính cách:
+
+(i) tính cách hướng ngoại;
+
+(ii) tính cách hòa đồng;
+
+(iii) tính bảo thủ (khó thay đổi hoặc bị thuyết phục bởi người khác)
+
+-Dự liệu trong tệp "discriminant_example" gồm biến:
+
+JOB:loại công việc được phân loại;
+
+OUTDOOR: Tính hướng ngoại;
+
+SOCIAL: Tính hòa đồng;
+
+CONSERVATIVE: Tính bảo thủ
+
+Yêu cầu: Sử dụng phương pháp phân tích khác biệt để phân loại nhân viên
+của hãng thành 3 nhóm.
+
+```{r}
+library(readxl)
+DAE <- read_excel("Assignment_TKT63/discriminant_example.xlsx")
+```
+
+## 4.2. Tiến hành phân tích khác biệt
+
+```{r}
+DAE[,-4]=scale(DAE[,-4])
+set.seed(6)
+sp<- sample(c(TRUE, FALSE), nrow(DAE), replace=TRUE, prob=c(0.7,0.3))
+train1<-DAE[sp,-5]
+test1<-DAE[!sp,-5]
+```
+
+```{r}
+library(MASS)
+model <- lda(JOB~., data=train1)
+model
+```
+
+```{r}
+predicted <- predict(model,test1 )
+#predicted
+print("Tỷ lệ dự báo đúng")
+mean(predicted$class==test1$JOB,na.rm=TRUE)
+```
+
+```{r}
+lda_plot <- cbind(train1, predict(model)$x)
+library(ggplot2)
+ggplot(data = lda_plot, mapping=aes(LD1,LD2)) + geom_point(aes(color = JOB))
+```

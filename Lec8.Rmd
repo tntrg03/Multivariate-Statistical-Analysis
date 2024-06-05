@@ -1,0 +1,150 @@
+---
+title: "Lec8_EFA"
+author: "TTNC"
+date: "2023-10-26"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Phân tích nhân tố khám phá(Exproratory Factor Analysis)
+
+```{r}
+library(readxl)
+#số liệu được xây dựng dựa trên bảng hỏi thang đo likirt
+EFA <- read_excel("E:/Phan tich tk nhieu chieu/FactorAnalysis_BT_Modified.xls")
+attach(EFA)
+View(EFA)
+```
+
+```{r}
+library(stats)
+nhom_income=EFA[,2:4]
+#nhom_income
+```
+
+### Cronback's alpha test for each group
+
+```{r}
+library(psych)
+alpha(nhom_income)
+```
+
+```{r}
+nhom_emp=EFA[,5:8]
+alpha(nhom_emp)
+```
+
+```{r}
+nhom_inf=EFA[,9:13]
+alpha(nhom_inf)
+```
+
+```{r}
+nhom_pus=EFA[,14:18]
+alpha(nhom_pus)
+```
+
+### Kiểm tra điều kiện thực hiện FA :2 test -\> KMO test(Sample adequacy of conducting FA)
+
+### -\> Bartlett test (H0:Identity correlation matrix-\>chưa BB H0-\>không thực hiện được FA)
+
+```{r}
+#bỏ cột đầu tiên và 3 cột cuối cùng đi
+data_EFA<-EFA[,2:48]
+#View(data_EFA)
+```
+
+```{r}
+KMO(cor(data_EFA)) #KMO>0.5
+```
+
+```{r}
+cortest.bartlett(cor(data_EFA)) # p-value < 0.05
+```
+
+### =\>KMO = 0.85 and p-value of chi square in Bartlett are OK
+
+### Thực hiện phân tích nhân tố
+
+```{r}
+factanal(data_EFA, factors = 10)
+fa.parallel(data_EFA,fm='minres',fa='fa')
+```
+
+### Nếu lựa chọn giá trị eigen \> 1 thì có 9 Factor được chọn
+
+### 9 Factor giải thích được 60.6%
+
+```{r}
+library(stats)
+library(psych)
+eg=eigen(cor(data_EFA))
+eg$values
+fitmodel=factanal(data_EFA,9,rotation="varimax",score="regression")
+print(fitmodel,digit=2, cutoff=0.5,sort=TRUE)
+##digit: lay bnh so sau dau phay
+##sort: sxep tu lon den be
+F=fitmodel$scores
+## eigen=7.07 co 15%
+
+```
+
+```{r}
+fitmodel1=factanal(EFA[,49:51],1,rotation="varimax",score="regression")
+print(fitmodel1,digit=2, cutoff=0.5,sort=TRUE)
+hai_long=fitmodel1$scores
+hai_long
+
+```
+
+```{r}
+attach(data.frame(F))
+#summary(F)
+summary(lm(hai_long~Factor1+Factor2+Factor3+Factor4+Factor5+Factor6+Factor7+Factor8+Factor9))
+```
+
+##CFA
+
+```{r}
+data3=EFA[,2:51]
+library(lavaan)
+library(semPlot)
+pathmodel <- '
+f1 =~ ENV1+ENV2+ENV3+ENV4+ENV5+HEA1+HEA2+HEA3+HEA4+HEA5
+f2 =~ INC1+INC2+INC3+EMP1+EMP2+EMP3+EMP4
+f3 =~ SOL1+SOL2+SOL3+SOL4+SOL5
+f4 =~ GOV1+GOV2+GOV3+GOV4+GOV5
+f5 =~ INF1+INF3+PUS1+PUS3+PUS4
+f6 =~ CUL1+CUL2+CUL3+CUL4
+f7 =~ HOU1+HOU2+HOU3
+f8 =~ HOU4+HOU5
+f9 =~ ENV4
+OSC =~ OSC1+OSC2+OSC3
+'
+#fit model
+modelfit2 = cfa(pathmodel, data=data3)
+summary(modelfit2, fit.measures=TRUE)
+semPaths(modelfit2,"std",rotation = 4)
+```
+
+```{r}
+pathmodel2 <- '
+f1 =~ ENV1+ENV2+ENV3+ENV4+ENV5+HEA1+HEA2+HEA3+HEA4+HEA5
+f2 =~ INC1+INC2+INC3+EMP1+EMP2+EMP3+EMP4
+f3 =~ SOL1+SOL2+SOL3+SOL4+SOL5
+f4 =~ GOV1+GOV2+GOV3+GOV4+GOV5
+f5 =~ INF1+INF3+PUS1+PUS3+PUS4
+f6 =~ CUL1+CUL2+CUL3+CUL4
+f7 =~ HOU1+HOU2+HOU3
+f8 =~ HOU4+HOU5
+f9 =~ ENV4
+OSC =~ OSC1+OSC2+OSC3
+OSC =~ f1+f2+f3+f4+f5+f6+f7+f8+f9
+'
+modelfit3 = sem(pathmodel2, data=data3, std.lv=TRUE, estimator="MLM")
+summary(modelfit3)# ước lượng lại mô hình=> xem còn mối quan hệ giữa các nhân tố nào nữa không
+```
+
